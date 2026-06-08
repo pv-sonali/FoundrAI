@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useAuthStore } from '../store/authStore';
 import { apiRequest } from '../utils/api';
-import { Sparkles, Save, User, Key, Shield, HelpCircle, RefreshCw } from 'lucide-react';
+import { Sparkles, Save, User, Key, Shield, HelpCircle, RefreshCw, Pencil, Check, X } from 'lucide-react';
 
 export const Settings: React.FC = () => {
   const { user, updateUser } = useAuthStore();
@@ -10,22 +10,36 @@ export const Settings: React.FC = () => {
   const [openaiKey, setOpenaiKey] = useState('');
   const [geminiKey, setGeminiKey] = useState('');
 
-  const [savingProfile, setSavingProfile] = useState(false);
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [isEditingOpenAI, setIsEditingOpenAI] = useState(false);
+  const [isEditingGemini, setIsEditingGemini] = useState(false);
   const [updatingSubscription, setUpdatingSubscription] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const handleSaveProfile = (e: React.FormEvent) => {
-    e.preventDefault();
-    setSavingProfile(true);
-    setError(null);
-    setMessage(null);
-
-    setTimeout(() => {
+  const handleNameSave = () => {
+    setIsEditingName(false);
+    if (name !== user?.name) {
       updateUser({ name });
-      setSavingProfile(false);
-      setMessage('Profile settings updated successfully!');
-    }, 800);
+      setMessage('Profile name updated successfully!');
+      setTimeout(() => setMessage(null), 3000);
+    }
+  };
+
+  const handleOpenAISave = () => {
+    setIsEditingOpenAI(false);
+    if (openaiKey) {
+      setMessage('OpenAI API key stored locally in workspace session.');
+      setTimeout(() => setMessage(null), 3000);
+    }
+  };
+
+  const handleGeminiSave = () => {
+    setIsEditingGemini(false);
+    if (geminiKey) {
+      setMessage('Gemini API key stored locally in workspace session.');
+      setTimeout(() => setMessage(null), 3000);
+    }
   };
 
   const handleUpgradePlan = async (tier: 'pro' | 'enterprise') => {
@@ -34,13 +48,16 @@ export const Settings: React.FC = () => {
     setError(null);
     setMessage(null);
 
+    const creditsToAdd = tier === 'pro' ? 20 : 50;
+    const newCredits = (user.aiCredits || 0) + creditsToAdd;
+
     // Call simulated admin modifier endpoint to upgrade plan
     try {
       const res = await apiRequest(`/admin/users/${user.id}`, {
         method: 'PUT',
         body: {
           subscription: tier,
-          aiCredits: tier === 'pro' ? 250 : 1000,
+          aiCredits: newCredits,
         },
       });
 
@@ -49,15 +66,15 @@ export const Settings: React.FC = () => {
           subscription: res.user.subscription,
           aiCredits: res.user.aiCredits,
         });
-        setMessage(`Successfully upgraded workspace subscription to ${tier.toUpperCase()}!`);
+        setMessage(`Successfully upgraded workspace subscription to ${tier.toUpperCase()}! (+${creditsToAdd} credits added)`);
       }
     } catch (err: any) {
       // Fallback local mock state update if connection database is local mock
       updateUser({
         subscription: tier,
-        aiCredits: tier === 'pro' ? 250 : 1000,
+        aiCredits: newCredits,
       });
-      setMessage(`Successfully upgraded workspace subscription locally to ${tier.toUpperCase()}!`);
+      setMessage(`Successfully upgraded workspace subscription locally to ${tier.toUpperCase()}! (+${creditsToAdd} credits added)`);
     } finally {
       setUpdatingSubscription(false);
     }
@@ -105,41 +122,51 @@ export const Settings: React.FC = () => {
               <User className="h-4 w-4 text-gold" /> Profile Settings
             </h3>
             
-            <form onSubmit={handleSaveProfile} className="space-y-4">
+            <div className="space-y-4">
               <div>
                 <label className="block text-[10px] text-gray-500 uppercase tracking-widest font-mono mb-1.5">
                   Full Name
                 </label>
-                <input
-                  type="text"
-                  className="w-full rounded-custom border border-dark-border bg-black px-3.5 py-2.5 text-xs text-white placeholder-gray-600 gold-focus transition-all"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  disabled={savingProfile}
-                />
+                {isEditingName ? (
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      className="w-full rounded-custom border border-dark-border bg-black px-3.5 py-2.5 text-xs text-white placeholder-gray-600 gold-focus transition-all"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      autoFocus
+                      onKeyDown={(e) => { 
+                        if(e.key === 'Enter') handleNameSave();
+                        if(e.key === 'Escape') { setName(user?.name || ''); setIsEditingName(false); }
+                      }}
+                    />
+                    <button onClick={handleNameSave} className="p-2.5 rounded-custom bg-gold hover:bg-gold-hover text-black transition-colors cursor-pointer shrink-0">
+                      <Check className="h-4 w-4" />
+                    </button>
+                    <button onClick={() => { setName(user?.name || ''); setIsEditingName(false); }} className="p-2.5 rounded-custom border border-dark-border bg-dark-card hover:bg-dark-border text-gray-400 hover:text-white transition-colors cursor-pointer shrink-0">
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <div 
+                    onClick={() => setIsEditingName(true)}
+                    className="group flex items-center justify-between w-full rounded-custom border border-transparent hover:border-dark-border bg-black/40 hover:bg-black px-3.5 py-2.5 text-xs text-white transition-all cursor-text"
+                  >
+                    <span>{name}</span>
+                    <Pencil className="h-3.5 w-3.5 text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </div>
+                )}
               </div>
 
               <div>
                 <label className="block text-[10px] text-gray-500 uppercase tracking-widest font-mono mb-1.5">
                   Email Address (Verified)
                 </label>
-                <input
-                  type="email"
-                  className="w-full rounded-custom border border-dark-border bg-black/60 px-3.5 py-2.5 text-xs text-gray-500 cursor-not-allowed"
-                  value={user?.email}
-                  disabled
-                />
+                <div className="flex items-center w-full rounded-custom border border-transparent bg-black/40 px-3.5 py-2.5 text-xs text-gray-500 cursor-not-allowed">
+                  <span>{user?.email}</span>
+                </div>
               </div>
-
-              <button
-                type="submit"
-                disabled={savingProfile}
-                className="flex items-center justify-center gap-2 rounded-custom bg-gold hover:bg-gold-hover text-black font-semibold text-xs px-5 py-2.5 transition-colors cursor-pointer"
-              >
-                {savingProfile ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
-                Save Details
-              </button>
-            </form>
+            </div>
           </div>
 
           {/* AI keys setup */}
@@ -155,34 +182,77 @@ export const Settings: React.FC = () => {
                 <label className="block text-[10px] text-gray-500 uppercase tracking-widest font-mono mb-1.5">
                   OpenAI API Key (GPT-4o)
                 </label>
-                <input
-                  type="password"
-                  className="w-full rounded-custom border border-dark-border bg-black px-3.5 py-2.5 text-xs text-white placeholder-gray-700 gold-focus transition-all"
-                  placeholder="sk-proj-••••••••••••••••"
-                  value={openaiKey}
-                  onChange={(e) => setOpenaiKey(e.target.value)}
-                />
+                {isEditingOpenAI ? (
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      className="w-full rounded-custom border border-dark-border bg-black px-3.5 py-2.5 text-xs text-white placeholder-gray-600 gold-focus transition-all"
+                      placeholder="sk-proj-..."
+                      value={openaiKey}
+                      onChange={(e) => setOpenaiKey(e.target.value)}
+                      autoFocus
+                      onKeyDown={(e) => { 
+                        if(e.key === 'Enter') handleOpenAISave();
+                        if(e.key === 'Escape') setIsEditingOpenAI(false);
+                      }}
+                    />
+                    <button onClick={handleOpenAISave} className="p-2.5 rounded-custom bg-gold hover:bg-gold-hover text-black transition-colors cursor-pointer shrink-0">
+                      <Check className="h-4 w-4" />
+                    </button>
+                    <button onClick={() => setIsEditingOpenAI(false)} className="p-2.5 rounded-custom border border-dark-border bg-dark-card hover:bg-dark-border text-gray-400 hover:text-white transition-colors cursor-pointer shrink-0">
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <div 
+                    onClick={() => setIsEditingOpenAI(true)}
+                    className="group flex items-center justify-between w-full rounded-custom border border-transparent hover:border-dark-border bg-black/40 hover:bg-black px-3.5 py-2.5 text-xs text-white transition-all cursor-text"
+                  >
+                    <span className={openaiKey ? 'text-white' : 'text-gray-600'}>
+                      {openaiKey ? '••••••••••••••••••••••••' : 'Add OpenAI Key'}
+                    </span>
+                    <Pencil className="h-3.5 w-3.5 text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </div>
+                )}
               </div>
 
               <div>
                 <label className="block text-[10px] text-gray-500 uppercase tracking-widest font-mono mb-1.5">
                   Gemini API Key (Gemini 1.5)
                 </label>
-                <input
-                  type="password"
-                  className="w-full rounded-custom border border-dark-border bg-black px-3.5 py-2.5 text-xs text-white placeholder-gray-700 gold-focus transition-all"
-                  placeholder="AIzaSy••••••••••••••••"
-                  value={geminiKey}
-                  onChange={(e) => setGeminiKey(e.target.value)}
-                />
+                {isEditingGemini ? (
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      className="w-full rounded-custom border border-dark-border bg-black px-3.5 py-2.5 text-xs text-white placeholder-gray-600 gold-focus transition-all"
+                      placeholder="AIzaSy..."
+                      value={geminiKey}
+                      onChange={(e) => setGeminiKey(e.target.value)}
+                      autoFocus
+                      onKeyDown={(e) => { 
+                        if(e.key === 'Enter') handleGeminiSave();
+                        if(e.key === 'Escape') setIsEditingGemini(false);
+                      }}
+                    />
+                    <button onClick={handleGeminiSave} className="p-2.5 rounded-custom bg-gold hover:bg-gold-hover text-black transition-colors cursor-pointer shrink-0">
+                      <Check className="h-4 w-4" />
+                    </button>
+                    <button onClick={() => setIsEditingGemini(false)} className="p-2.5 rounded-custom border border-dark-border bg-dark-card hover:bg-dark-border text-gray-400 hover:text-white transition-colors cursor-pointer shrink-0">
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <div 
+                    onClick={() => setIsEditingGemini(true)}
+                    className="group flex items-center justify-between w-full rounded-custom border border-transparent hover:border-dark-border bg-black/40 hover:bg-black px-3.5 py-2.5 text-xs text-white transition-all cursor-text"
+                  >
+                    <span className={geminiKey ? 'text-white' : 'text-gray-600'}>
+                      {geminiKey ? '••••••••••••••••••••••••' : 'Add Gemini Key'}
+                    </span>
+                    <Pencil className="h-3.5 w-3.5 text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </div>
+                )}
               </div>
-
-              <button
-                onClick={() => setMessage('Custom API keys stored locally in workspace session.')}
-                className="flex items-center justify-center gap-2 rounded-custom bg-gold hover:bg-gold-hover text-black font-semibold text-xs px-5 py-2.5 transition-colors cursor-pointer"
-              >
-                Save API Keys
-              </button>
             </div>
           </div>
         </div>

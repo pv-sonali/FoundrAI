@@ -81,7 +81,7 @@ export const FundingHub: React.FC = () => {
           <DollarSign className="h-10 w-10 text-gold/40 mx-auto mb-4" />
           <h3 className="text-sm font-semibold text-white mb-2">No Funding Matches Found</h3>
           <p className="text-xs text-gray-500 max-w-sm mx-auto mb-6">
-            Find government grants, angels, and seed VC funds matching the **{activeStartup?.name}** profile.
+            Find government grants, angels, and seed VC funds matching the <strong className="text-white font-bold">{activeStartup?.name}</strong> profile.
           </p>
           <button
             onClick={handleGenerate}

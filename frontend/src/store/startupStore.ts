@@ -19,6 +19,8 @@ interface StartupModules {
   funding?: any;
   risk?: any;
   tasks?: any[];
+  chatCount?: number;
+  analytics?: any[];
 }
 
 interface StartupState {

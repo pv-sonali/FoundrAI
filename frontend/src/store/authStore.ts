@@ -32,24 +32,34 @@ export const useAuthStore = create<AuthState>((set) => ({
   loading: true,
   error: null,
 
-  initAuth: () => {
+  initAuth: async () => {
     const token = localStorage.getItem('token');
-    const storedUser = localStorage.getItem('user');
-    if (token && storedUser) {
-      try {
+    if (!token) {
+      set({ token: null, user: null, isAuthenticated: false, loading: false });
+      return;
+    }
+
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/auth/me`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await response.json();
+      
+      if (response.ok && data.success) {
         set({
           token,
-          user: JSON.parse(storedUser),
+          user: data.user,
           isAuthenticated: true,
           loading: false,
         });
-      } catch (err) {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        set({ token: null, user: null, isAuthenticated: false, loading: false });
+        localStorage.setItem('user', JSON.stringify(data.user));
+      } else {
+        throw new Error('Invalid token');
       }
-    } else {
-      set({ loading: false });
+    } catch (err) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      set({ token: null, user: null, isAuthenticated: false, loading: false });
     }
   },
 

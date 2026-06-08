@@ -1,6 +1,10 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const rateLimit = require('express-rate-limit');
 
+if (!process.env.JWT_SECRET) {
+  console.warn('WARNING: JWT_SECRET environment variable is not set. Using a fallback secret is insecure for production!');
+}
 const JWT_SECRET = process.env.JWT_SECRET || 'foundr_ai_secret_key_12345';
 
 // Verify JWT token middleware
@@ -38,36 +42,18 @@ const authorize = (...roles) => {
       });
     }
     next();
-  };
+  }
 };
 
-// In-memory rate limiting middleware
+// Rate limiting middleware
 const rateLimiter = (limit = 100, windowMs = 15 * 60 * 1000) => {
-  const requests = new Map(); // ip -> [timestamps]
-
-  return (req, res, next) => {
-    const ip = req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress;
-    const now = Date.now();
-    
-    if (!requests.has(ip)) {
-      requests.set(ip, []);
-    }
-
-    const timestamps = requests.get(ip);
-    // Filter out timestamps older than window
-    const activeTimestamps = timestamps.filter(time => now - time < windowMs);
-    
-    if (activeTimestamps.length >= limit) {
-      return res.status(429).json({
-        success: false,
-        message: 'Too many requests. Please try again later.',
-      });
-    }
-
-    activeTimestamps.push(now);
-    requests.set(ip, activeTimestamps);
-    next();
-  };
+  return rateLimit({
+    windowMs,
+    max: limit,
+    message: { success: false, message: 'Too many requests. Please try again later.' },
+    standardHeaders: true,
+    legacyHeaders: false,
+  });
 };
 
 module.exports = { protect, authorize, rateLimiter, JWT_SECRET };

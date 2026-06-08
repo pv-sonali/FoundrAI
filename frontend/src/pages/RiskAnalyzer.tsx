@@ -134,7 +134,7 @@ export const RiskAnalyzer: React.FC = () => {
           <ShieldAlert className="h-10 w-10 text-gold/40 mx-auto mb-4" />
           <h3 className="text-sm font-semibold text-white mb-2">No Risk Analysis Formulated</h3>
           <p className="text-xs text-gray-500 max-w-sm mx-auto mb-6">
-            Generate risk scorecards and mitigation blueprints for **{activeStartup?.name}**.
+            Generate risk scorecards and mitigation blueprints for <strong className="text-white font-bold">{activeStartup?.name}</strong>.
           </p>
           <button
             onClick={handleGenerate}

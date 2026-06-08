@@ -97,7 +97,7 @@ export const MarketResearch: React.FC = () => {
           <BarChart2 className="h-10 w-10 text-gold/40 mx-auto mb-4" />
           <h3 className="text-sm font-semibold text-white mb-2">No Market Research Conducted</h3>
           <p className="text-xs text-gray-500 max-w-sm mx-auto mb-6">
-            Run market size projections and customer trend analyses for **{activeStartup?.name}**.
+            Run market size projections and customer trend analyses for <strong className="text-white font-bold">{activeStartup?.name}</strong>.
           </p>
           <button
             onClick={handleGenerate}

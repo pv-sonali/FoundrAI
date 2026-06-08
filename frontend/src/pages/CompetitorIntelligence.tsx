@@ -89,7 +89,7 @@ export const CompetitorIntelligence: React.FC = () => {
           <ShieldAlert className="h-10 w-10 text-gold/40 mx-auto mb-4" />
           <h3 className="text-sm font-semibold text-white mb-2">No Competitor Mapping Found</h3>
           <p className="text-xs text-gray-500 max-w-sm mx-auto mb-6">
-            Generate an interactive competitor analysis grid for **{activeStartup?.name}**.
+            Generate an interactive competitor analysis grid for <strong className="text-white font-bold">{activeStartup?.name}</strong>.
           </p>
           <button
             onClick={handleGenerate}
@@ -189,7 +189,7 @@ export const CompetitorIntelligence: React.FC = () => {
             <div>
               <h4 className="text-xs font-bold text-white uppercase tracking-wider font-mono">Co-Founder Tactical Tip</h4>
               <p className="text-xs text-gray-400 mt-1 leading-relaxed">
-                Use your competitor's weaknesses to write copy for your landing page. For example, if competitors require high annual contract sizes, highlight **"Self-serve, cancel anytime subscription"** in your main headings.
+                Use your competitor's weaknesses to write copy for your landing page. For example, if competitors require high annual contract sizes, highlight <strong className="text-white font-bold">"Self-serve, cancel anytime subscription"</strong> in your main headings.
               </p>
             </div>
           </div>

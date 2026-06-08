@@ -1,4 +1,5 @@
-require('dotenv').config();
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '.env') });
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
@@ -26,20 +27,25 @@ app.use(express.json());
 app.use(rateLimiter(200, 15 * 60 * 1000));
 
 // Connect to MongoDB
-const mongoUri = process.env.MONGO_URI || process.env.MONDO_URI || 'mongodb://127.0.0.1:27017/foundrai';
+const mongoUri = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/foundrai';
 console.log('Connecting to database...');
 mongoose.connect(mongoUri, { serverSelectionTimeoutMS: 5000 })
   .then(() => console.log('Successfully connected to MongoDB.'))
   .catch((err) => {
     console.error('Critical Database connection error on primary URI:', err.message);
-    const fallbackUri = 'mongodb://127.0.0.1:27017/foundrai';
-    if (mongoUri !== fallbackUri) {
-      console.log(`Attempting fallback to local MongoDB: ${fallbackUri}`);
-      mongoose.connect(fallbackUri, { serverSelectionTimeoutMS: 5000 })
-        .then(() => console.log('Successfully connected to local MongoDB fallback.'))
-        .catch((fallbackErr) => {
-          console.error('Failed to connect to local MongoDB fallback:', fallbackErr.message);
-        });
+    if (process.env.NODE_ENV !== 'production') {
+      const fallbackUri = 'mongodb://127.0.0.1:27017/foundrai';
+      if (mongoUri !== fallbackUri) {
+        console.log(`Attempting fallback to local MongoDB: ${fallbackUri}`);
+        mongoose.connect(fallbackUri, { serverSelectionTimeoutMS: 5000 })
+          .then(() => console.log('Successfully connected to local MongoDB fallback.'))
+          .catch((fallbackErr) => {
+            console.error('Failed to connect to local MongoDB fallback:', fallbackErr.message);
+          });
+      }
+    } else {
+      console.error('Production database connection failed. Exiting process.');
+      process.exit(1);
     }
   });
 

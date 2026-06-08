@@ -25,6 +25,17 @@ const StartupSchema = new mongoose.Schema({
     required: true,
     trim: true,
   },
+  servingAs: [{
+    type: String
+  }],
+  links: {
+    type: Map,
+    of: String
+  },
+  referralSource: {
+    type: String,
+    trim: true
+  },
   createdAt: {
     type: Date,
     default: Date.now,
