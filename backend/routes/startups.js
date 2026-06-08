@@ -32,7 +32,7 @@ router.get('/', protect, async (req, res) => {
 // @desc    Get single startup detailed modules
 router.get('/:id', protect, async (req, res) => {
   try {
-    const startup = await Startup.findOne({ _id: req.id || req.params.id, userId: req.user._id });
+    const startup = await Startup.findOne({ _id: req.params.id, userId: req.user._id });
     if (!startup) {
       return res.status(404).json({ success: false, message: 'Startup not found.' });
     }
@@ -47,6 +47,8 @@ router.get('/:id', protect, async (req, res) => {
     const funding = await Funding.findOne({ startupId: startup._id });
     const risk = await Risk.findOne({ startupId: startup._id });
     const tasks = await Task.find({ startupId: startup._id });
+    const chatCount = await Chat.countDocuments({ startupId: startup._id });
+    const analytics = await Analytics.find({ userId: req.user._id }).sort({ createdAt: -1 }).limit(15);
 
     return res.json({
       success: true,
@@ -61,6 +63,8 @@ router.get('/:id', protect, async (req, res) => {
         funding,
         risk,
         tasks,
+        chatCount,
+        analytics,
       },
     });
   } catch (err) {
@@ -72,19 +76,30 @@ router.get('/:id', protect, async (req, res) => {
 // @route   POST /api/startups
 // @desc    Create a new startup workspace
 router.post('/', protect, async (req, res) => {
-  const { name, description, industry, targetAudience } = req.body;
+  const { name, description, industry, targetAudience, servingAs, links, referralSource } = req.body;
 
-  if (!name || !description || !industry || !targetAudience) {
-    return res.status(400).json({ success: false, message: 'Please provide all details (name, description, industry, targetAudience).' });
+  if (!name || !description || !industry || !targetAudience || !servingAs || !referralSource) {
+    return res.status(400).json({ success: false, message: 'Please provide all details (name, description, industry, targetAudience, servingAs, referralSource).' });
   }
 
   try {
+    // Enforce Free tier limits
+    if (req.user.subscription === 'free') {
+      const existingCount = await Startup.countDocuments({ userId: req.user._id });
+      if (existingCount >= 1) {
+        return res.status(403).json({ success: false, message: 'Free plan is limited to 1 startup workspace. Please upgrade your plan.' });
+      }
+    }
+
     const startup = await Startup.create({
       userId: req.user._id,
       name,
       description,
       industry,
       targetAudience,
+      servingAs,
+      links,
+      referralSource
     });
 
     await Analytics.create({

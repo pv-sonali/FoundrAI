@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Sparkles, Loader2, Mail } from 'lucide-react';
+import { Loader2, Mail } from 'lucide-react';
 import { apiRequest } from '../utils/api';
 
 export const ForgotPassword: React.FC = () => {
@@ -48,10 +48,7 @@ export const ForgotPassword: React.FC = () => {
       <div className="w-full max-w-sm rounded-custom border border-dark-border bg-dark-card p-8 shadow-2xl">
         {/* Logo */}
         <div className="flex flex-col items-center justify-center text-center mb-6">
-          <div className="h-10 w-10 rounded-full border border-gold bg-black flex items-center justify-center mb-3">
-            <Sparkles className="h-5 w-5 text-gold animate-pulse" />
-          </div>
-          <h2 className="text-xl font-bold tracking-wider font-mono">
+          <h2 className="text-2xl font-bold tracking-wider font-mono">
             FOUNDR<span className="text-gold">AI</span>
           </h2>
           <p className="text-[11px] text-gray-500 mt-1 uppercase tracking-widest font-mono">

@@ -19,11 +19,24 @@ export const Dashboard: React.FC = () => {
   const { user } = useAuthStore();
   const { activeStartup, activeModules, loadingModules } = useStartupStore();
 
-  const mockFeed = [
-    { text: 'Initial checklist created for the workspace', time: 'Just now' },
-    { text: 'Platform templates seeded successfully', time: '1 hour ago' },
-    { text: 'AI credits loaded into dashboard subscription wallet', time: '2 hours ago' },
-  ];
+  const formatTAM = (tam: any) => {
+    if (!tam) return '—';
+    const num = Number(tam);
+    if (isNaN(num)) return `$${tam}`;
+    if (num >= 1e9) return `$${(num / 1e9).toFixed(1)}B`;
+    if (num >= 1e6) return `$${(num / 1e6).toFixed(1)}M`;
+    return `$${num.toLocaleString()}`;
+  };
+
+  const getTimeAgo = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diff = Math.floor((now.getTime() - date.getTime()) / 60000); // minutes
+    if (diff < 1) return 'Just now';
+    if (diff < 60) return `${diff} min ago`;
+    if (diff < 1440) return `${Math.floor(diff / 60)} hrs ago`;
+    return date.toLocaleDateString();
+  };
 
   // Dynamic onboarding Checklist
   const checklist = [
@@ -183,7 +196,7 @@ export const Dashboard: React.FC = () => {
                   <TrendingUp className="h-4.5 w-4.5 text-gold mb-1" />
                   <span className="text-[9px] uppercase tracking-wider text-gray-500 font-mono">Market TAM</span>
                   <span className="text-sm font-bold text-white mt-1 truncate max-w-full">
-                    {activeModules?.research ? `$${(activeModules.research.tam / 1000000000).toFixed(1)}B` : '—'}
+                    {activeModules?.research ? formatTAM(activeModules.research.tam) : '—'}
                   </span>
                 </div>
 
@@ -199,7 +212,7 @@ export const Dashboard: React.FC = () => {
                   <MessageSquare className="h-4.5 w-4.5 text-gold mb-1" />
                   <span className="text-[9px] uppercase tracking-wider text-gray-500 font-mono">Mentor Chats</span>
                   <span className="text-xs font-bold text-white mt-1">
-                    Active
+                    {activeModules?.chatCount ? `${activeModules.chatCount} Sessions` : 'None'}
                   </span>
                 </div>
               </div>
@@ -211,15 +224,18 @@ export const Dashboard: React.FC = () => {
                 Workspace Log Activity
               </h3>
               <div className="space-y-4 max-h-48 overflow-y-auto">
-                {mockFeed.map((item, idx) => (
+                {(activeModules?.analytics || []).map((item: any, idx: number) => (
                   <div key={idx} className="flex gap-2.5 items-start">
                     <span className="h-1.5 w-1.5 rounded-full bg-gold mt-1.5 shrink-0"></span>
                     <div>
-                      <div className="text-xs text-gray-300 leading-normal">{item.text}</div>
-                      <span className="text-[9px] text-gray-600 font-mono mt-0.5 block">{item.time}</span>
+                      <div className="text-xs text-gray-300 leading-normal">{item.details || item.action}</div>
+                      <span className="text-[9px] text-gray-600 font-mono mt-0.5 block">{getTimeAgo(item.createdAt)}</span>
                     </div>
                   </div>
                 ))}
+                {(!activeModules?.analytics || activeModules.analytics.length === 0) && (
+                  <div className="text-xs text-gray-500 italic">No activity logged yet.</div>
+                )}
               </div>
             </div>
 

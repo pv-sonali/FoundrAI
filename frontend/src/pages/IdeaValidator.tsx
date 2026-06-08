@@ -96,7 +96,7 @@ export const IdeaValidator: React.FC = () => {
           <Sparkles className="h-10 w-10 text-gold/40 mx-auto mb-4" />
           <h3 className="text-sm font-semibold text-white mb-2">No Validation Data Yet</h3>
           <p className="text-xs text-gray-500 max-w-sm mx-auto mb-6">
-            Generate validation reports for **{activeStartup?.name}** using the centralized AI service.
+            Generate validation reports for <strong className="text-white font-bold">{activeStartup?.name}</strong> using the centralized AI service.
           </p>
           <button
             onClick={handleValidate}

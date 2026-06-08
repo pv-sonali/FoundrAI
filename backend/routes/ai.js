@@ -68,7 +68,7 @@ router.post('/validate', protect, async (req, res) => {
         risks: data.risks,
         suggestions: data.suggestions,
       },
-      { new: true, upsert: true }
+      { returnDocument: 'after', upsert: true }
     );
 
     await Analytics.create({
@@ -118,7 +118,7 @@ router.post('/research', protect, async (req, res) => {
         painPoints: data.painPoints,
         growthOpportunities: data.growthOpportunities,
       },
-      { new: true, upsert: true }
+      { returnDocument: 'after', upsert: true }
     );
 
     await Analytics.create({
@@ -162,7 +162,7 @@ router.post('/competitors', protect, async (req, res) => {
         userId: req.user._id,
         competitors: data.competitors,
       },
-      { new: true, upsert: true }
+      { returnDocument: 'after', upsert: true }
     );
 
     await Analytics.create({
@@ -214,7 +214,7 @@ router.post('/business-model', protect, async (req, res) => {
         costStructure: data.costStructure,
         revenueStreams: data.revenueStreams,
       },
-      { new: true, upsert: true }
+      { returnDocument: 'after', upsert: true }
     );
 
     await Analytics.create({
@@ -240,7 +240,7 @@ router.post('/business-model/update', protect, async (req, res) => {
     const result = await BusinessModel.findOneAndUpdate(
       { startupId, userId: req.user._id },
       { ...canvasData },
-      { new: true, upsert: true }
+      { returnDocument: 'after', upsert: true }
     );
     return res.json({ success: true, businessModel: result });
   } catch (err) {
@@ -278,7 +278,7 @@ router.post('/mvp-plan', protect, async (req, res) => {
         milestones: data.milestones,
         sprintPlan: data.sprintPlan,
       },
-      { new: true, upsert: true }
+      { returnDocument: 'after', upsert: true }
     );
 
     await Analytics.create({
@@ -304,7 +304,7 @@ router.post('/mvp-plan/sprint/update', protect, async (req, res) => {
     const result = await MVPPlan.findOneAndUpdate(
       { startupId, userId: req.user._id },
       { sprintPlan },
-      { new: true }
+      { returnDocument: 'after' }
     );
     return res.json({ success: true, mvpPlan: result });
   } catch (err) {
@@ -340,7 +340,7 @@ router.post('/pitch-deck', protect, async (req, res) => {
         userId: req.user._id,
         slides: data.slides,
       },
-      { new: true, upsert: true }
+      { returnDocument: 'after', upsert: true }
     );
 
     await Analytics.create({
@@ -387,7 +387,7 @@ router.post('/funding', protect, async (req, res) => {
         angelInvestors: data.angelInvestors,
         vcs: data.vcs,
       },
-      { new: true, upsert: true }
+      { returnDocument: 'after', upsert: true }
     );
 
     await Analytics.create({
@@ -434,7 +434,7 @@ router.post('/risk-analysis', protect, async (req, res) => {
         financial: data.financial,
         legal: data.legal,
       },
-      { new: true, upsert: true }
+      { returnDocument: 'after', upsert: true }
     );
 
     await Analytics.create({
@@ -479,7 +479,7 @@ router.get('/chats/:id', protect, async (req, res) => {
 // @route   POST /api/ai/chat
 // @desc    Send message to AI Startup Mentor and fetch response
 router.post('/chat', protect, async (req, res) => {
-  const { startupId, chatId, message } = req.body;
+  const { startupId, chatId, message, persona } = req.body;
 
   if (!message) {
     return res.status(400).json({ success: false, message: 'Please provide a message.' });
@@ -493,7 +493,28 @@ router.post('/chat', protect, async (req, res) => {
 
     let startup = null;
     if (startupId) {
-      startup = await Startup.findOne({ _id: startupId, userId: req.user._id });
+      startup = await Startup.findOne({ _id: startupId, userId: req.user._id }).lean();
+      if (startup) {
+        const idea = await Idea.findOne({ startupId: startup._id }).select('-startupId -_id -__v').lean();
+        const research = await Research.findOne({ startupId: startup._id }).select('-startupId -_id -__v').lean();
+        const competitor = await Competitor.findOne({ startupId: startup._id }).select('-startupId -_id -__v').lean();
+        const businessModel = await BusinessModel.findOne({ startupId: startup._id }).select('-startupId -_id -__v').lean();
+        const mvpPlan = await MVPPlan.findOne({ startupId: startup._id }).select('-startupId -_id -__v').lean();
+        const pitchDeck = await PitchDeck.findOne({ startupId: startup._id }).select('-startupId -_id -__v').lean();
+        const funding = await Funding.findOne({ startupId: startup._id }).select('-startupId -_id -__v').lean();
+        const risk = await Risk.findOne({ startupId: startup._id }).select('-startupId -_id -__v').lean();
+
+        startup.modulesContext = {
+          ...(idea && { idea }),
+          ...(research && { research }),
+          ...(competitor && { competitor }),
+          ...(businessModel && { businessModel }),
+          ...(mvpPlan && { mvpPlan }),
+          ...(pitchDeck && { pitchDeck }),
+          ...(funding && { funding }),
+          ...(risk && { risk }),
+        };
+      }
     }
 
     if (!chat) {
@@ -516,7 +537,8 @@ router.post('/chat', protect, async (req, res) => {
     const aiResponse = await aiService.generateMentorResponse(
       chat.messages,
       message,
-      startup
+      startup,
+      persona
     );
 
     // Append AI response

@@ -41,6 +41,16 @@ export const AIMentor: React.FC = () => {
   const [listening, setListening] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const personas = [
+    'Virtual Co-Founder',
+    'Chief Operating Officer (COO)',
+    'Chief Marketing Officer (CMO)',
+    'Chief Financial Officer (CFO)',
+    'Chief Product Officer (CPO)',
+    'Chief Strategy Officer (CSO)'
+  ];
+  const [selectedPersona, setSelectedPersona] = useState(personas[0]);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<any>(null);
 
@@ -133,6 +143,7 @@ export const AIMentor: React.FC = () => {
           startupId: activeStartup?._id,
           chatId: activeChat?._id,
           message: text,
+          persona: selectedPersona, // Send the selected persona to backend
         },
       });
 
@@ -159,6 +170,16 @@ export const AIMentor: React.FC = () => {
     setActiveChat(null);
     setMessages([]);
     setInputMsg('');
+  };
+
+  const formatMessage = (text: string) => {
+    const parts = text.split(/(\*\*.*?\*\*)/g);
+    return parts.map((part, i) => {
+      if (part.startsWith('**') && part.endsWith('**')) {
+        return <strong key={i} className="text-white font-bold">{part.slice(2, -2)}</strong>;
+      }
+      return <span key={i}>{part}</span>;
+    });
   };
 
   const handleSaveToggle = async (session: ChatSession) => {
@@ -292,7 +313,7 @@ export const AIMentor: React.FC = () => {
                     <div className={`rounded-custom border p-4 text-xs leading-relaxed ${
                       isAI ? 'border-dark-border bg-dark-card text-gray-200' : 'border-gold/30 bg-gold/5 text-white'
                     }`}>
-                      <div className="whitespace-pre-line">{msg.content}</div>
+                      <div className="whitespace-pre-line">{formatMessage(msg.content)}</div>
                     </div>
                   </div>
                 );
@@ -324,10 +345,22 @@ export const AIMentor: React.FC = () => {
 
         {/* Input Bar */}
         <div className="p-4 border-t border-dark-border bg-black">
-          <div className="flex items-center gap-2.5 rounded-custom border border-dark-border bg-dark-card px-4 py-2">
+          <div className="flex items-center gap-2.5 rounded-custom border border-dark-border bg-dark-card px-3 py-2">
+            <div className="flex items-center border-r border-dark-border pr-3 shrink-0">
+              <span className="text-[9px] text-gray-500 uppercase tracking-widest font-mono mr-2 hidden md:block">Act As:</span>
+              <select
+                value={selectedPersona}
+                onChange={(e) => setSelectedPersona(e.target.value)}
+                className="bg-transparent text-xs text-gold outline-none font-semibold font-mono appearance-none cursor-pointer hover:text-gold-hover transition-colors truncate max-w-[140px]"
+                title="Select AI Persona"
+              >
+                {personas.map(p => <option key={p} value={p} className="bg-black text-white">{p}</option>)}
+              </select>
+            </div>
+            
             <input
               type="text"
-              className="flex-1 bg-transparent text-xs text-white placeholder-gray-500 outline-none"
+              className="flex-1 bg-transparent text-xs text-white placeholder-gray-500 outline-none pl-1"
               placeholder="Ask for advice (e.g. How to acquire waitlists...)"
               value={inputMsg}
               onChange={(e) => setInputMsg(e.target.value)}

@@ -2,9 +2,45 @@ const express = require('express');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
+const { z } = require('zod');
+const nodemailer = require('nodemailer');
 const { protect, JWT_SECRET } = require('../middleware/auth');
 const User = require('../models/User');
 const Analytics = require('../models/Analytics');
+
+// Configure Nodemailer (Using Ethereal for testing or real SMTP if configured)
+const transporter = nodemailer.createTransport({
+  host: process.env.SMTP_HOST || 'smtp.ethereal.email',
+  port: process.env.SMTP_PORT || 587,
+  auth: {
+    user: process.env.SMTP_USER || 'test@ethereal.email',
+    pass: process.env.SMTP_PASS || 'testpass',
+  },
+});
+
+const sendEmail = async (mailOptions) => {
+  if (process.env.SMTP_PASS === 'testpass' || !process.env.SMTP_PASS) {
+    console.log('\n=== MOCK EMAIL SENT ===');
+    console.log(`To: ${mailOptions.to}`);
+    console.log(`Subject: ${mailOptions.subject}`);
+    console.log(`Body: ${mailOptions.text}`);
+    console.log('=======================\n');
+    return;
+  }
+  return transporter.sendMail(mailOptions);
+};
+
+// Zod Schemas
+const registerSchema = z.object({
+  name: z.string().min(2),
+  email: z.string().email(),
+  password: z.string().min(6),
+});
+
+const loginSchema = z.object({
+  email: z.string().email(),
+  password: z.string(),
+});
 
 // Generate JWT Helper
 const generateToken = (id) => {
@@ -14,9 +50,9 @@ const generateToken = (id) => {
 // @route   POST /api/auth/register
 // @desc    Register a new user
 router.post('/register', async (req, res) => {
-  const { name, email, password } = req.body;
-
   try {
+    const { name, email, password } = registerSchema.parse(req.body);
+
     const userExists = await User.findOne({ email });
     if (userExists) {
       return res.status(400).json({ success: false, message: 'User already exists with this email.' });
@@ -26,7 +62,8 @@ router.post('/register', async (req, res) => {
     const count = await User.countDocuments({});
     const role = count === 0 ? 'admin' : 'founder';
 
-    const verificationToken = crypto.randomBytes(20).toString('hex');
+    const rawVerificationToken = crypto.randomBytes(20).toString('hex');
+    const verificationToken = crypto.createHash('sha256').update(rawVerificationToken).digest('hex');
 
     const user = await User.create({
       name,
@@ -35,6 +72,19 @@ router.post('/register', async (req, res) => {
       role,
       verificationToken,
     });
+
+    // Send Verification Email
+    const verifyUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/verify-email?token=${rawVerificationToken}`;
+    try {
+      await sendEmail({
+        from: '"FoundrAI" <noreply@foundrai.com>',
+        to: user.email,
+        subject: 'Verify Your Email',
+        text: `Please verify your email by clicking this link: ${verifyUrl}`,
+      });
+    } catch (emailErr) {
+      console.error('Failed to send verification email:', emailErr);
+    }
 
     // Record login/registration action
     await Analytics.create({
@@ -59,6 +109,9 @@ router.post('/register', async (req, res) => {
       },
     });
   } catch (err) {
+    if (err instanceof z.ZodError) {
+      return res.status(400).json({ success: false, message: err.errors[0].message });
+    }
     console.error('Registration error:', err);
     return res.status(500).json({ success: false, message: 'Server error during registration.' });
   }
@@ -67,9 +120,9 @@ router.post('/register', async (req, res) => {
 // @route   POST /api/auth/login
 // @desc    Authenticate user and get token
 router.post('/login', async (req, res) => {
-  const { email, password } = req.body;
-
   try {
+    const { email, password } = loginSchema.parse(req.body);
+
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(401).json({ success: false, message: 'Invalid credentials.' });
@@ -103,6 +156,9 @@ router.post('/login', async (req, res) => {
       },
     });
   } catch (err) {
+    if (err instanceof z.ZodError) {
+      return res.status(400).json({ success: false, message: err.errors[0].message });
+    }
     console.error('Login error:', err);
     return res.status(500).json({ success: false, message: 'Server error during login.' });
   }
@@ -113,8 +169,13 @@ router.post('/login', async (req, res) => {
 router.post('/verify-email', async (req, res) => {
   const { token } = req.body;
 
+  if (!token) {
+    return res.status(400).json({ success: false, message: 'Token is required.' });
+  }
+
   try {
-    const user = await User.findOne({ verificationToken: token });
+    const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+    const user = await User.findOne({ verificationToken: hashedToken });
     if (!user) {
       return res.status(400).json({ success: false, message: 'Invalid or expired verification token.' });
     }
@@ -153,12 +214,23 @@ router.post('/forgot-password', async (req, res) => {
 
     await user.save();
 
-    console.log(`[PASSWORD RESET LINK MOCK]: http://localhost:5173/reset-password/${resetToken}`);
+    const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/reset-password/${resetToken}`;
+    console.log(`[PASSWORD RESET LINK MOCK]: ${resetUrl}`);
+
+    try {
+      await sendEmail({
+        from: '"FoundrAI" <noreply@foundrai.com>',
+        to: user.email,
+        subject: 'Password Reset Request',
+        text: `You requested a password reset. Click here to reset: ${resetUrl}`,
+      });
+    } catch (emailErr) {
+      console.error('Failed to send reset email:', emailErr);
+    }
 
     return res.json({
       success: true,
-      message: 'Password reset link simulated. Check console logs for URL.',
-      mockLink: `/reset-password/${resetToken}`,
+      message: 'Password reset link sent to email.',
     });
   } catch (err) {
     console.error('Forgot password error:', err);

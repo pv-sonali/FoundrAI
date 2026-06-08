@@ -138,8 +138,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       <aside className="w-64 border-r border-dark-border bg-black flex flex-col">
         {/* Brand */}
         <div className="h-16 flex items-center gap-2 px-6 border-b border-dark-border">
-          <Sparkles className="h-5 w-5 text-gold" />
-          <span className="font-bold tracking-wider text-lg font-mono">
+          <span className="font-bold tracking-wider text-xl font-mono">
             FOUNDR<span className="text-gold">AI</span>
           </span>
           <span className="text-[9px] border border-gold/40 text-gold px-1 rounded-sm uppercase tracking-widest font-mono scale-90">
@@ -315,7 +314,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                   </h4>
                   <div className="space-y-3 max-h-48 overflow-y-auto">
                     <div className="text-[11px] border-b border-dark-border/40 pb-2">
-                      <div className="text-gray-400">Welcome to FoundrAI! Click **My Startups** to initialize a new venture.</div>
+                      <div className="text-gray-400">Welcome to FoundrAI! Click <strong className="text-white font-bold">My Startups</strong> to initialize a new venture.</div>
                       <div className="text-[9px] text-gray-600 mt-1">Just now</div>
                     </div>
                     <div className="text-[11px] border-b border-dark-border/40 pb-2">

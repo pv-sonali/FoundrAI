@@ -242,7 +242,7 @@ export const BusinessModelCanvas: React.FC = () => {
           <Sparkles className="h-10 w-10 text-gold/40 mx-auto mb-4" />
           <h3 className="text-sm font-semibold text-white mb-2">No Canvas Formulated</h3>
           <p className="text-xs text-gray-500 max-w-sm mx-auto mb-6">
-            Create an interactive Business Model Canvas for **{activeStartup?.name}**.
+            Create an interactive Business Model Canvas for <strong className="text-white font-bold">{activeStartup?.name}</strong>.
           </p>
           <button
             onClick={handleGenerate}

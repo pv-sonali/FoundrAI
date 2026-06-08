@@ -139,7 +139,7 @@ export const MVPPlanner: React.FC = () => {
           <KanbanSquare className="h-10 w-10 text-gold/40 mx-auto mb-4" />
           <h3 className="text-sm font-semibold text-white mb-2">No MVP Product Spec</h3>
           <p className="text-xs text-gray-500 max-w-sm mx-auto mb-6">
-            Generate specifications, roadmap milestones, and Kanban items for **{activeStartup?.name}**.
+            Generate specifications, roadmap milestones, and Kanban items for <strong className="text-white font-bold">{activeStartup?.name}</strong>.
           </p>
           <button
             onClick={handleGenerate}
